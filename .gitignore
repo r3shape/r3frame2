@@ -1,0 +1,6 @@
+main.py
+
+MANIFEST.in
+
+*venv/
+*__pycache__/
