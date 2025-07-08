@@ -111,8 +111,11 @@ norm_v2 = lambda v: [v[0] / mag_v2(v), v[1] / mag_v2(v)] if mag_v2(v) != 0 else 
 # ------------------------------------------------------------ #
 
 @R3private
-def r3_path(directory: str, sub: str) -> str:
-    fp = f"D:/dev/py_projects/r3frame/.external/{directory}/{sub}".replace("/", os.sep).replace("\\", os.sep).split(os.sep)
+def r3_path(path: str, remcore: bool = 0) -> str:
+    fp = __file__.split(os.sep)
+    fp.remove(fp[-1])
+    if remcore: fp.remove(fp[-1])
+    [fp.append(p) for p in path.replace("/", os.sep).replace("\\", os.sep).split(os.sep)]
     return f"{os.sep}".join(fp)
 
 def rel_path(path: str) -> str:

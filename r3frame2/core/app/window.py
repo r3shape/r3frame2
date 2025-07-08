@@ -11,7 +11,7 @@ class R3window(R3atom):
         self.color: list[int] = color
         
         self.raster: pg.Surface = pg.display.set_mode(size)
-        self.icon: pg.Surface = pg.image.load(r3_path("images", "logo-16x.png")).convert_alpha()
+        self.icon: pg.Surface = pg.image.load(r3_path(".external/images/logo-16x.png", 1)).convert_alpha()
         
         pg.display.set_caption(title)
         pg.display.set_icon(self.icon)
