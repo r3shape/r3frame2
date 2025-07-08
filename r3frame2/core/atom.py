@@ -12,17 +12,12 @@ def R3private(func):
 
 class R3atom:
     def __init__(self) -> None:
-        self._mask: int = 0
-        self._type: int = 0
+        self._flags: int = 0
         self._uid: int = id(self)
 
     @property
-    def mask(self) -> int:
-        return self._mask
-    
-    @property
-    def type(self) -> int:
-        return self._type
+    def flags(self) -> int:
+        return self._flags
     
     @property
     def uid(self) -> int:
@@ -34,13 +29,13 @@ class R3atom:
 
     def set_flag(self, flag: int) -> None:
         if flag < 0 or not isinstance(flag, int): return
-        self._mask |= flag
+        self._flags |= flag
 
     def get_flag(self, flag: int) -> bool:
         if flag < 0 or not isinstance(flag, int): return
-        return ((self._mask & flag) == flag)
+        return ((self._flags & flag) == flag)
 
     def rem_flag(self, flag: int) -> None:
         if flag < 0 or not isinstance(flag, int): return
-        self._mask &= ~flag
+        self._flags &= ~flag
 

@@ -8,17 +8,22 @@ import r3frame2 as r3
 class R3entity(R3atom):
     def __init__(
             self,
-            uid: int,
-            pos: list[int] = [0, 0, 0],
+            eid: int,
+            pos: list[int] = [0, 0],
             size: list[int] = [32, 32],
             rgba: list[int] = [255, 255, 255, 255],
+            rgba_key: list[int] = [0, 0, 0, 0],
     ) -> None:
         super().__init__()
-        self.uid: int = uid
+        self.eid: int = eid
         self.pos: list[int] = pos[:]
         self.size: list[int] = size[:]
+        
         self.rgba: list[int] = rgba[:]
-        self.surface: pg.Surface = None
+        self.rgba_key: list[int] = rgba_key[:]
+        
+        self.anim: r3.resource.R3anim = None
+        self.surface: r3.resource.R3surf = None
     
     @property
     def red(self) -> int:

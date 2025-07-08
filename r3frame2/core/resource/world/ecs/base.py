@@ -8,7 +8,7 @@ class R3ecs(R3atom):
     def __init__(self, entity_max: int = 65535) -> None:
         super().__init__()
         self.next: int = 0
-        self.max: int = max
+        self.max: int = entity_max
         self.free: list[int] = []
         self.mask: list[int] = [0] * self.max
         self.active: list[int] = [0] * self.max

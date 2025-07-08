@@ -28,5 +28,5 @@ R3FRAME_QUOTES: list[str] = [
     "isnt this fun?",
     "now lets add multiplayer...",
     "check out r3shape on github! (https://github.com/r3shape)",
-    "try typing `r3 playground` in your terminal...",
+    "try typing `r3playground` in your terminal...",
 ]

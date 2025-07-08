@@ -10,10 +10,14 @@ class R3surf(R3atom):
             self,
             size: list[int] = [32, 32],
             rgba: list[int] = [255, 255, 255, 255],
+            rgba_key: list[int] = [0, 0, 0, 0],
     ) -> None:
         super().__init__()
         self.size: list[int] = size[:]
         self.rgba: list[int] = rgba[:]
+        self.rgba_key: list[int] = rgba_key[:]
+        
+        self.mask: pg.Mask = None
         self.surface: pg.Surface = None
     
     @property

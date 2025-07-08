@@ -1,5 +1,6 @@
 from r3frame2.core.log import R3logger
 from r3frame2.core.flags import R3flags
+from r3frame2.core.status import R3status
 
 import r3frame2.core.utils as utils
 
