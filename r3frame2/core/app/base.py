@@ -78,19 +78,23 @@ class R3app(R3atom):
         while self.get_flag(R3flags.app.RUNNING):
             self.events.update()
             self.clock.update()
-            self.window.clear()
             
+            self.window.clear()
             if isinstance(self.scene, r3.app.R3scene):
                 self.scene.events()
+
+                if self.clock.tick:
+                    self.scene.tick()
                 
                 self.scene.physics.update(self.clock.delta)
                 self.scene.camera.update(self.clock.delta)
                 self.scene.update(self.clock.delta)
                 
                 self.scene.render()
-                self.scene.renderer.render()
                 self.scene.ui.render()
-
+                self.scene.renderer.flush()
+                self.scene.renderer.swap_buffers()
+                
             self.mouse.pos.rel = pg.mouse.get_rel()
             self.mouse.pos.screen = pg.mouse.get_pos()
 

@@ -15,6 +15,7 @@ class R3atlas(R3atom):
         self.size: list[int] = size[:]
         self.rgba: list[int] = rgba[:]
         self.surface: pg.Surface = None
+        self._freeze()
     
     @property
     def red(self) -> int:

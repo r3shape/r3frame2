@@ -24,6 +24,7 @@ class R3node(R3atom):
 
         self.chunk: r3.resource.R3chunk = chunk
         self.partition: r3.resource.R3gridPartition | r3.resource.R3treedPartition = None
+        self._freeze()
 
     def _write_to_disk(self) -> None: pass
     def _read_from_disk(self) -> None: pass

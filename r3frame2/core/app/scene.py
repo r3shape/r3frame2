@@ -22,5 +22,8 @@ class R3scene(R3atom):
     def exit(self) -> None: raise NotImplementedError
     def init(self) -> None: raise NotImplementedError
     def events(self) -> None: raise NotImplementedError
+
     def update(self, dt: float) -> None: raise NotImplementedError
+    def tick(self) -> None: pass
+
     def render(self) -> None: raise NotImplementedError

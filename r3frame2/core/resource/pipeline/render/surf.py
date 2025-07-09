@@ -19,6 +19,7 @@ class R3surf(R3atom):
         
         self.mask: pg.Mask = None
         self.surface: pg.Surface = None
+        self._freeze()
     
     @property
     def red(self) -> int:

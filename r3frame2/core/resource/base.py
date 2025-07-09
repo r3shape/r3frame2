@@ -7,14 +7,18 @@ import r3frame2 as r3
 
 class R3database(R3atom):
     def __init__(self) -> None:
+        super().__init__()
         __meta__: dict = {
             "_count": 0,
         }
+        
         self.surf: dict[str, r3.resource.R3surf] =          { k: v for k,v in __meta__.items() }
         self.anim: dict[str, r3.resource.R3anim] =          { k: v for k,v in __meta__.items() }
+        self.aabb: dict[str, r3.resource.R3aabb] =          { k: v for k,v in __meta__.items() }
         self.atlas: dict[str, r3.resource.R3atlas] =        { k: v for k,v in __meta__.items() }
         self.entity: dict[str, r3.resource.R3entity] =      { k: v for k,v in __meta__.items() }
         self.element: dict[str, r3.resource.R3element] =    { k: v for k,v in __meta__.items() }
+        self._freeze()
 
     def _valid_key(self, cache: str, key: str) -> int:
         if not getattr(self, cache, 0):
@@ -63,6 +67,41 @@ class R3database(R3atom):
             return None
 
 
+    def load_aabb(
+            self,
+            key: str,
+            entity: "r3.resource.R3entity",
+            pos: list[int] = [0, 0],
+            size: list[int] = [32, 32],
+        ) -> int:
+        if self._valid_key("aabb", key) != R3status.database.KEY_NOT_FOUND:
+            R3logger.error(f"[R3database] failed to load AABB: (key){key}")
+            return R3status.database.LOAD_FAIL
+
+        self.aabb[key] = r3.resource.R3aabb(entity, pos, size)
+        self.aabb["_count"] += 1
+
+        R3logger.debug(f"[R3database] loaded AABB: (key){key} (pos){pos} (size){size}")
+        return R3status.database.LOAD_SUCCESS
+
+    def unload_aabb(self, key: str) -> int:
+        if self._valid_key("aabb", key) != R3status.database.KEY_FOUND:
+            R3logger.error(f"[R3database] failed to unload AABB: (key){key}")
+            return R3status.database.LOAD_FAIL
+
+        self.aabb.pop(key)
+        self.aabb["_count"] -= 1
+
+        R3logger.debug(f"[R3database] unloaded AABB: (key){key}")
+        return R3status.database.LOAD_SUCCESS
+
+    def query_aabb(self, key: str) -> "r3.resource.R3aabb":
+        if self._valid_key("aabb", key) != R3status.database.KEY_FOUND:
+            R3logger.error(f"[R3database] failed to query AABB: (key){key}")
+            return R3status.database.LOAD_FAIL        
+        return self.aabb.get(key, R3status.database.LOAD_FAIL)
+
+
     def load_entity(
             self,
             key: str,
@@ -75,7 +114,7 @@ class R3database(R3atom):
             R3logger.error(f"[R3database] failed to load entity: (key){key}")
             return R3status.database.LOAD_FAIL
 
-        self.entity[key] = r3.resource.R3entity(self.entity["_count"], pos, size, rgba)
+        self.entity[key] = r3.resource.R3entity(key, self.entity["_count"], pos, size, rgba)
         
         surface = self.load_surf(f"{key}.surface", size, rgba, rgba_key, None)
         if surface == R3status.database.LOAD_FAIL:

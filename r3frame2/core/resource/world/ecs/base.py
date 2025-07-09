@@ -15,6 +15,7 @@ class R3ecs(R3atom):
 
         self.systems: dict[type, r3.resource.ec.R3system] = {}
         self.components: dict[type, r3.resource.ec.R3component] = {}
+        self._freeze()
 
     def request_entity(self) -> int:
         if len(self.free) > 0:

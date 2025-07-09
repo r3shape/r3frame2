@@ -12,5 +12,6 @@ class R3ui(R3atom):
         super().__init__()
         self.app: r3.app.R3app = app
         self.database: r3.resource.R3database = app.database
+        self._freeze()
 
     def render(self) -> None: pass

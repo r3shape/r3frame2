@@ -8,6 +8,7 @@ import r3frame2 as r3
 class R3entity(R3atom):
     def __init__(
             self,
+            tag: str,
             eid: int,
             pos: list[int] = [0, 0],
             size: list[int] = [32, 32],
@@ -15,6 +16,7 @@ class R3entity(R3atom):
             rgba_key: list[int] = [0, 0, 0, 0],
     ) -> None:
         super().__init__()
+        self.tag: str = tag
         self.eid: int = eid
         self.pos: list[int] = pos[:]
         self.size: list[int] = size[:]
@@ -24,6 +26,7 @@ class R3entity(R3atom):
         
         self.anim: r3.resource.R3anim = None
         self.surface: r3.resource.R3surf = None
+        self._freeze()
     
     @property
     def red(self) -> int:
@@ -39,13 +42,13 @@ class R3entity(R3atom):
         return self.rgba[3]
 
     @property
-    def w(self) -> float:
+    def width(self) -> float:
         return self.size[0]
     @property
-    def h(self) -> float:
+    def height(self) -> float:
         return self.size[1]
     @property
-    def a(self) -> float:
+    def area(self) -> float:
         return self.size[0] * self.size[1]
 
     @property
@@ -55,8 +58,5 @@ class R3entity(R3atom):
     def y(self) -> float:
         return self.pos[1]
     @property
-    def z(self) -> float:
-        return self.pos[2]
-    @property
-    def c(self) -> list[float]:
+    def center(self) -> list[float]:
         return add_v2(self.pos, div_v2(self.size, 2))

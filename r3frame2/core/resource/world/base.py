@@ -10,6 +10,7 @@ class R3world(R3atom):
 
         self.chunks_loaded: list[list[int]] = []
         self.chunks: dict[list[int], r3.resource.R3chunk] = {}
+        self._freeze()
         
     def _write_to_disk(self) -> None: pass
     def _read_from_disk(self) -> None: pass

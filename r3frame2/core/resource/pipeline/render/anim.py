@@ -15,6 +15,7 @@ class R3anim(R3atom):
         self.size: list[int] = size[:]
         self.rgba: list[int] = rgba[:]
         self.surfaces: list[r3.resource.R3surf] = None
+        self._freeze()
     
     @property
     def surface(self) -> pg.Surface: return

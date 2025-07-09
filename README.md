@@ -57,8 +57,11 @@ class MyScene(r3.app.R3scene):
     def update(self, dt: float): pass
 
     def render(self):
-        self.app.window.blit(self.player.surface.surface, self.player.pos)
-
+        # queue a render call for our player
+        # or render our player immediately
+        self.renderer.queue(self.player)
+        # self.renderer.render(self.player)
+        
 class MyApp(r3.app.R3app):
     def __init__(self):
         super().__init__(title="MyApp")

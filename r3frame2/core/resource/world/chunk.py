@@ -32,6 +32,7 @@ class R3chunk(R3atom):
         self.nodes: dict[list[int], r3.resource.R3node] = {}
 
         self.partition: r3.resource.R3gridPartition | r3.resource.R3treePartition = None
+        self._freeze()
 
     def _write_to_disk(self) -> None: pass
     def _read_from_disk(self) -> None: pass
