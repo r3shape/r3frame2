@@ -11,15 +11,15 @@ class R3app(R3atom):
             title: str = "R3app",
             clock_rate: float = 0.1,
             clock_target: float = 60,
-            window_size: list[int] = [ 800, 600]
+            window_size: list[int] = [1280, 720]
         ) -> None:
         super().__init__()
         self.title: str = title
-        
+
         self.events: r3.app.R3events = r3.app.R3events(self)
         self.window: r3.app.R3window = r3.app.R3window(size=window_size)
         self.clock: r3.app.R3clock = r3.app.R3clock(clock_rate, clock_target)
-        
+
         self.mouse: r3.app.R3mouse = r3.app.R3mouse()
         self.keyboard: r3.app.R3keyboard = r3.app.R3keyboard()
 
@@ -34,7 +34,7 @@ class R3app(R3atom):
     def init(self) -> None:
         R3logger.error(f'"{self.title}" Initialization Method Missing...')
         raise NotImplementedError
-    
+
     def exit(self) -> None:
         R3logger.error(f'"{self.title}" Exit Method Missing...')
         raise NotImplementedError
@@ -65,7 +65,7 @@ class R3app(R3atom):
         self.scene = self.scenes[key]
         R3logger.info(f"[R3app] scene set: (key){key}")
         self.scene.init()
-        
+
     def rem_scene(self, key: str) -> None:
         if self.scenes.get(key, False) != False:
             R3logger.warning(f"[R3app] scene not found: (key){key}")
@@ -78,28 +78,33 @@ class R3app(R3atom):
         while self.get_flag(R3flags.app.RUNNING):
             self.events.update()
             self.clock.update()
-            
+
             self.window.clear()
+
+            self.mouse.pos.screen = pg.mouse.get_pos()
+            self.mouse.pos.rel = pg.mouse.get_rel()
+
             if isinstance(self.scene, r3.app.R3scene):
+                self.mouse.pos.view = r3.utils.div2_v2i(self.mouse.pos.screen, self.scene.camera.viewport_scale)
+                self.mouse.pos.world = r3.utils.add_v2(self.mouse.pos.view, self.scene.camera.viewport_pos)
+                
                 self.scene.events()
 
                 if self.clock.tick:
                     self.scene.tick()
-                
+
                 self.scene.physics.update(self.clock.delta)
                 self.scene.camera.update(self.clock.delta)
                 self.scene.update(self.clock.delta)
-                
+
                 self.scene.render()
                 self.scene.ui.render()
                 self.scene.renderer.flush()
                 self.scene.renderer.swap_buffers()
-                
-            self.mouse.pos.rel = pg.mouse.get_rel()
-            self.mouse.pos.screen = pg.mouse.get_pos()
 
             self.window.update()
         else:
             if isinstance(self.scene, r3.app.R3scene):
                 self.scene.exit()
+            self.database.clear()
             self.exit()

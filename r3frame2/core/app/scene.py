@@ -17,7 +17,7 @@ class R3scene(R3atom):
         
         self.ui: r3.pipeline.R3ui = r3.pipeline.R3ui(app)
         self.camera: r3.pipeline.R3camera = r3.pipeline.R3camera(app)
-        self.renderer: r3.pipeline.R3renderer = r3.pipeline.R3renderer(app)
+        self.renderer: r3.pipeline.R3renderer = r3.pipeline.R3renderer(app, self.camera)
 
     def exit(self) -> None: raise NotImplementedError
     def init(self) -> None: raise NotImplementedError

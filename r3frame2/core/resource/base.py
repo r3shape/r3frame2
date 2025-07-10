@@ -188,3 +188,13 @@ class R3database(R3atom):
             R3logger.error(f"[R3database] failed to query surf: (key){key}")
             return R3status.database.LOAD_FAIL        
         return self.surf.get(key, R3status.database.LOAD_FAIL)
+
+
+    def clear(self) -> None:
+        self.surf.clear()
+        self.anim.clear()
+        self.aabb.clear()
+        self.atlas.clear()
+        self.entity.clear()
+        self.element.clear()
+        R3logger.debug(f"[R3database] cleared all stored resources")

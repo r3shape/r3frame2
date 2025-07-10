@@ -4,4 +4,5 @@ class R3flags:
         RUNNING: int = 0x0001
 
     class renderer:
-        SHOW_COLLIDERS: int = 0x0001
+        Y_SORT: int = 0x0001
+        DIRTY_CAMERA: int = 0x0002

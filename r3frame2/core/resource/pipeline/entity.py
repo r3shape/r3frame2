@@ -20,14 +20,14 @@ class R3entity(R3atom):
         self.eid: int = eid
         self.pos: list[int] = pos[:]
         self.size: list[int] = size[:]
-        
+
         self.rgba: list[int] = rgba[:]
         self.rgba_key: list[int] = rgba_key[:]
-        
+
         self.anim: r3.resource.R3anim = None
         self.surface: r3.resource.R3surf = None
         self._freeze()
-    
+
     @property
     def red(self) -> int:
         return self.rgba[0]

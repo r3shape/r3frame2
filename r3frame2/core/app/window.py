@@ -4,15 +4,17 @@ from ..log import R3logger
 from ..utils import add_v2, r3_path
 
 class R3window(R3atom):
-    def __init__(self, title: str = "R3window", size: list[int] = [800, 600], color: list[int] = [25, 25, 25]) -> None:
+    def __init__(self, title: str = "R3window", size: list[int] = [1280, 720], color: list[int] = [25, 25, 25]) -> None:
         super().__init__()
         self.title: str = title
         self.size: list[int] = size
         self.color: list[int] = color
-        
+
+        self.aspect: float = size[0] / size[1]
+
         self.raster: pg.Surface = pg.display.set_mode(size)
         self.icon: pg.Surface = pg.image.load(r3_path(".external/images/logo-16x.png", 1)).convert_alpha()
-        
+
         pg.display.set_caption(title)
         pg.display.set_icon(self.icon)
 
