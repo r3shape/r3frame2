@@ -65,8 +65,8 @@ class MyApp(r3.app.R3app):
         super().__init__(title="MyApp")
 
     def init(self):
-        self.add_scene("player", MyScene)
-        self.set_scene("player")
+        self.add_scene("playground", MyScene)
+        self.set_scene("playground")
 
     def exit(self): pass
 
