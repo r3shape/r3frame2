@@ -4,5 +4,6 @@ MANIFEST.in
 
 *dist/
 *venv/
+*.test/
 *.egg-info/
 *__pycache__/

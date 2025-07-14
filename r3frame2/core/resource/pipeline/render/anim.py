@@ -3,8 +3,6 @@ from ....globals import pg
 # from ..utils import 
 import r3frame2 as r3
 
-# anim data container -- surfaces assigned on database entry
-# R3database.anim[key] -> R3anim
 class R3anim(R3atom):
     def __init__(
             self,

@@ -1,14 +1,14 @@
 from ..atom import R3atom, R3private
 from ..status import R3status
 from ..log import R3logger
-from ..globals import pg
-from ..utils import add_v2, sub_v2, mul_v2, scale_v2, norm_v2, mag_v2
+from ..utils import sub_v2, norm_v2, mag_v2, equal_arrays
 import r3frame2 as r3
 
 class R3physics(R3atom):
     def __init__(
             self,
             app: "r3.app.R3app",
+            world: "r3.resource.R3world",
     ) -> None:
         super().__init__()
         self._meta: dict = {
@@ -19,6 +19,7 @@ class R3physics(R3atom):
         self.damp_threshold = 0.8
         
         self.app: r3.app.R3app = app
+        self.world: r3.resource.R3world = world
         self.database: r3.resource.R3database = app.database
         
         self._command_buffer_max: int = 16
@@ -42,7 +43,7 @@ class R3physics(R3atom):
             R3logger.debug(f"[R3physics] toggled entity physics off: (entity){entity.tag}")
             return R3status.physics.ENTITY_FOUND
         elif self._valid_entity(self.transform_data, entity) == R3status.physics.ENTITY_NOT_FOUND:
-            self.transform_data[entity] = [entity, [0.0, 0.0], []]
+            self.transform_data[entity] = [entity, [0.0, 0.0], [], self.world.cell_transform(entity.pos), self.world.node_transform(entity.pos)]
             R3logger.debug(f"[R3physics] toggled entity physics on: (entity){entity.tag}")
             return R3status.physics.ENTITY_FOUND
         else:
@@ -72,11 +73,13 @@ class R3physics(R3atom):
     def get_velocity(self, entity: "r3.resource.R3entity") -> list[float]:
         if self._valid_entity(self.transform_data, entity) != R3status.physics.ENTITY_FOUND:
             R3logger.error(f"[R3physics] entity not found: (entity){entity.tag}")
+            return
         else: return self.transform_data[entity][1][0]
 
     def get_direction(self, entity: "r3.resource.R3entity") -> list[float]:
         if self._valid_entity(self.transform_data, entity) != R3status.physics.ENTITY_FOUND:
             R3logger.error(f"[R3physics] entity not found: (entity){entity.tag}")
+            return
         else: return [(self.transform_data[entity][1][0] > 0) - (self.transform_data[entity][1][0] < 0),
                       (self.transform_data[entity][1][1] > 0) - (self.transform_data[entity][1][1] < 0)]
 
@@ -91,7 +94,7 @@ class R3physics(R3atom):
         if flush: self.transform_data[entity][2].clear()
 
         self.transform_data[entity][2].append([speed, pos, stop, center])
-        
+
     def set_velocity(self, entity: "r3.resource.R3entity", dx: int|float = None, dy: int|float = None) -> None:
         if self._valid_entity(self.transform_data, entity) != R3status.physics.ENTITY_FOUND:
             R3logger.error(f"[R3physics] entity not found: (entity){entity.tag}")
@@ -100,84 +103,91 @@ class R3physics(R3atom):
             if dy is not None: self.transform_data[entity][1][1] = dy
 
 
+    # TODO: SAABB narrow-phase rejection filter
+    # TODO: TOI resolver (Ray vs AABB / Minkowski Difference)
     @R3private
-    def _resolve_collision_x(self, entity: "r3.resource.R3entity", neighbors: list["r3.resource.R3entity"]) -> bool:
+    def _aabbx(self, entity: "r3.resource.R3entity") -> bool:
         if self._valid_entity(self.collision_data, entity) != R3status.physics.ENTITY_FOUND:
             return
         vel = self.transform_data[entity][1]
         a1 = self.collision_data[entity][1]
         r1 = a1.rect
-        for entity2, a2 in neighbors:
+        for entity2 in self.world.partition.query_neighbor_nodes(entity.pos):
             if entity2 == entity: continue
             if self._valid_entity(self.collision_data, entity2) != R3status.physics.ENTITY_FOUND:
                 continue
-            r2 = a2.rect
-            if r1.colliderect(r2):
+            a2 = self.collision_data[entity2][1]
+            if r1.colliderect(a2.rect):
                 if vel[0] > 0:
-                    r1.right = r2.left
-                    entity.pos[0] = r1.x + (r2.left - r1.right)
-                    vel[0] = 0
+                    r1.right = a2.rect.left
+                    entity.pos[0] = r1.x + (a2.rect.left - r1.right)
                 elif vel[0] < 0:
-                    r1.left = r2.right
-                    entity.pos[0] = r1.x + (r2.right - r1.left + 1)
-                    vel[0] = 0
+                    r1.left = a2.rect.right
+                    entity.pos[0] = r1.x + (a2.rect.right - r1.left)
+                vel[0] = 0
 
     @R3private
-    def _resolve_collision_y(self, entity: "r3.resource.R3entity", neighbors: list["r3.resource.R3entity"]) -> bool:
+    def _aabby(self, entity: "r3.resource.R3entity") -> bool:
         if self._valid_entity(self.collision_data, entity) != R3status.physics.ENTITY_FOUND:
             return
         vel = self.transform_data[entity][1]
         a1 = self.collision_data[entity][1]
         r1 = a1.rect
-        for entity2, a2 in neighbors:
+        for entity2 in self.world.partition.query_neighbor_nodes(entity.pos):
             if entity2 == entity: continue
             if self._valid_entity(self.collision_data, entity2) != R3status.physics.ENTITY_FOUND:
                 continue
-            r2 = a2.rect
-            if r1.colliderect(r2):
+            a2 = self.collision_data[entity2][1]
+            if r1.colliderect(a2.rect):
                 if vel[1] < 0:
-                    r1.bottom = r2.top
-                    entity.pos[1] = r1.y + (r2.bottom - r1.top)
-                    vel[1] = 0
+                    r1.bottom = a2.rect.top
+                    entity.pos[1] = r1.y + (a2.rect.bottom - r1.top)
                 elif vel[1] > 0:
-                    r1.top = r2.bottom
-                    entity.pos[1] = r1.y + (r2.top - r1.bottom)
-                    vel[1] = 0
+                    r1.top = a2.rect.bottom
+                    entity.pos[1] = r1.y + (a2.rect.top - r1.bottom)
+                vel[1] = 0
 
 
     @R3private
     def update(self, dt: float) -> None:
-        entities = [self.transform_data[e] for e in self.transform_data if e not in self._meta]
-        neighbors = [self.collision_data[e] for e in self.collision_data if e not in self._meta]
-
-        for e, v, mvto in entities:
-            if len(mvto) > 0:   # evaluate the "move to" command buffer
-                speed, pos, stop, center = mvto[0]
+        entities = tuple(self.transform_data[e] for e in self.transform_data if e not in self._meta)
+        for entity, vel, cmds, cell, node in entities:
+            if len(cmds) > 0:   # evaluate the "move to" command buffer
+                speed, pos, stop, center = cmds[0]
                 
-                diff = sub_v2(pos, e.center if center else e.pos)
+                diff = sub_v2(pos, entity.center if center else entity.pos)
                 direction = norm_v2(diff)
                 dist = mag_v2(diff)
                 
                 if int(dist) <= int(stop):
-                    mvto.pop(0)
+                    cmds.pop(0)
                 else:
                     dirx, diry = direction
-                    v[0] = dirx * speed
-                    v[1] = diry * speed
+                    vel[0] = dirx * speed
+                    vel[1] = diry * speed
 
-            v[0] *= (1 - self.damp_value * dt)
-            v[1] *= (1 - self.damp_value * dt)
+            vel[0] *= (1 - self.damp_value * dt)
+            vel[1] *= (1 - self.damp_value * dt)
 
-            if abs(self.transform_data[e][1][0]) < self.damp_threshold: v[0] = 0
-            if abs(self.transform_data[e][1][1]) < self.damp_threshold: v[1] = 0
+            if abs(self.transform_data[entity][1][0]) < self.damp_threshold: vel[0] = 0
+            if abs(self.transform_data[entity][1][1]) < self.damp_threshold: vel[1] = 0
 
-            # TODO: implement partitions for collision spatial queries around each entity!
-            # partitions remove neighbor list creation at loop start, as a simple call to _valid_entity(self.collision_data, e)
-            # determines if a spatial query should be made and collisions checked/resolved
-            # retrieving neighboring AABB's is then a simple list comprehension
-            # neighbors = [n for n in query if self._valid_entity(self.collision_data, n) == R3status.physics.ENTITY_FOUND]
-            e.pos[0] += v[0] * dt
-            self._resolve_collision_x(e, neighbors)
-            e.pos[1] += v[1] * dt
-            self._resolve_collision_y(e, neighbors)
-
+            entity.pos[0] += vel[0] * dt
+            self._aabbx(entity)
+            entity.pos[1] += vel[1] * dt
+            self._aabby(entity)
+            
+            # partition updates
+            new_node = self.world.node_transform(entity.pos)
+            if new_node and not equal_arrays(node, new_node):
+                self.transform_data[entity][4] = new_node
+                new_cell = self.world.cell_transform(entity.pos)
+                if new_cell and not equal_arrays(cell, new_cell):
+                    self.transform_data[entity][3] = new_cell
+                
+                # TODO: refactor partition insertion/removal logic to accept
+                # position as a param for elimination of the try/except block
+                try:
+                    self.world.partition.cells[cell][node].remove(entity)
+                except: pass
+                self.world.partition.insert(entity)

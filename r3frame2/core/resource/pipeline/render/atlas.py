@@ -3,8 +3,6 @@ from ....globals import pg
 # from ..utils import 
 import r3frame2 as r3
 
-# atlas data container -- surface assigned on database entry
-# R3database.atlas[key] -> R3atlas
 class R3atlas(R3atom):
     def __init__(
             self,

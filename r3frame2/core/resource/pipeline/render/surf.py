@@ -3,8 +3,6 @@ from ....globals import pg
 # from ..utils import 
 import r3frame2 as r3
 
-# surf data container -- surface assigned on database entry
-# R3database.surf[key] -> R3surf
 class R3surf(R3atom):
     def __init__(
             self,

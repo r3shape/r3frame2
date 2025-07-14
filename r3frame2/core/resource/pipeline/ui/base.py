@@ -3,8 +3,6 @@ from ....globals import pg
 from ....utils import add_v2, div_v2
 import r3frame2 as r3
 
-# element data container -- surface assigned on database entry
-# R3database.element[key] -> R3element
 class R3element(R3atom):
     def __init__(
             self,

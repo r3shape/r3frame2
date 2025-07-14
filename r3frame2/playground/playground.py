@@ -5,19 +5,23 @@ class Playground(r3.app.R3scene):
         super().__init__(app)
 
     def init(self):
-        # load an R3entity (0.0.1)
+         # load an R3entity (0.0.1)
         self.database.load_entity("enemy", [200, 200], [8, 8], rgba=[0, 0, 255])
-        self.database.load_entity("player", [100, 100], rgba=[255, 0, 0])
+        self.database.load_entity("player", [100, 100], [16, 16], rgba=[255, 0, 0])
 
         # query said entity and toggle physics on it (0.0.5)
         self.enemy = self.database.query_entity("enemy")
         self.player = self.database.query_entity("player")
 
+        # insert our entities into our world (0.0.7)
+        self.world.insert(self.player)
+        self.world.insert(self.enemy)
+        
         # configure our entity physics (0.0.5)
         self.physics.toggle_transform(self.enemy)
         self.physics.toggle_transform(self.player)
 
-        self.physics.toggle_collision(self.player, [0, 0], [32, 32])
+        self.physics.toggle_collision(self.player, [0, 0], [16, 16])
         self.physics.toggle_collision(self.enemy, [0, 0], [8, 8])
 
     def exit(self): pass
@@ -66,11 +70,11 @@ class Playground(r3.app.R3scene):
     def update(self, dt: float): pass
 
     def render(self):
-        # queue a render call for our player (0.0.4)
-        self.renderer.queue(self.player)
+        # queue a render call for our player (0.0.7)
+        self.renderer.queue(r3.resource.R3renderCall(0x0000, self.player.pos, self.player.surface))
 
-        # render our enemy immediately (0.0.4)
-        self.renderer.render(self.enemy)
+        # queue a render call for our enemy (0.0.7)
+        self.renderer.queue(r3.resource.R3renderCall(0x0000, self.enemy.pos, self.enemy.surface))
 
 class PlaygroundApp(r3.app.R3app):
     def __init__(self):
@@ -82,7 +86,7 @@ class PlaygroundApp(r3.app.R3app):
 
     def exit(self): pass
 
-def main():
+def main() -> None:
     PlaygroundApp().run()
 
 if __name__ == "__main__":

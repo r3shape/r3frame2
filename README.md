@@ -4,7 +4,7 @@
 ![GitHub Stars](https://img.shields.io/github/stars/r3shape/r3frame?style=for-the-badge&label=stars&labelColor=black&color=white)
 ![License](https://img.shields.io/badge/mit-badge?style=for-the-badge&logo=mit&logoColor=white&label=License&labelColor=black&color=white)
 ---  
-#### **r3frame** is a collection of modules designed to bring structure to your next game project, without hindrance.
+#### **r3frame2** is a collection of modules, classes and utilities designed to bring structure to your next project, without hindrance. Providing a robust and extensible development framework for many kinds of multimedia applications.
 
 ## Installation  
 Install **r3frame** via pip:  
@@ -14,7 +14,7 @@ pip install r3frame2
 ```
 
 ## r3 Playground  
-Once installed, you can run the **r3frame** playground demo by typing:  
+Once installed, you can run the playground demo by typing:  
 
 ```sh
 r3playground
@@ -37,7 +37,7 @@ class MyScene(r3.app.R3scene):
         
         # query said entity and toggle physics on it
         self.player = self.database.query_entity("player")
-        self.physics.toggle(self.player)
+        self.physics.toggle_transform(self.player)
     
     def exit(self): pass
 
@@ -57,11 +57,9 @@ class MyScene(r3.app.R3scene):
     def update(self, dt: float): pass
 
     def render(self):
-        # queue a render call for our player
-        # or render our player immediately
-        self.renderer.queue(self.player)
-        # self.renderer.render(self.player)
-        
+        # queue a render call for our player (0x0000 = Opaque Render Phase)
+        self.renderer.queue(r3.resource.R3renderCall(0x0000, self.player.pos, self.player.surface))
+
 class MyApp(r3.app.R3app):
     def __init__(self):
         super().__init__(title="MyApp")
