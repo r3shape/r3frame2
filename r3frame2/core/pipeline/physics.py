@@ -43,7 +43,7 @@ class R3physics(R3atom):
             R3logger.debug(f"[R3physics] toggled entity physics off: (entity){entity.tag}")
             return R3status.physics.ENTITY_FOUND
         elif self._valid_entity(self.transform_data, entity) == R3status.physics.ENTITY_NOT_FOUND:
-            self.transform_data[entity] = [entity, [0.0, 0.0], [], self.world.cell_transform(entity.pos), self.world.node_transform(entity.pos)]
+            self.transform_data[entity] = [entity, [0.0, 0.0], [], self.world.node_transform(entity.pos)]
             R3logger.debug(f"[R3physics] toggled entity physics on: (entity){entity.tag}")
             return R3status.physics.ENTITY_FOUND
         else:
@@ -151,7 +151,7 @@ class R3physics(R3atom):
     @R3private
     def update(self, dt: float) -> None:
         entities = tuple(self.transform_data[e] for e in self.transform_data if e not in self._meta)
-        for entity, vel, cmds, cell, node in entities:
+        for entity, vel, cmds, spatial in entities:
             if len(cmds) > 0:   # evaluate the "move to" command buffer
                 speed, pos, stop, center = cmds[0]
                 
@@ -178,16 +178,9 @@ class R3physics(R3atom):
             self._aabby(entity)
             
             # partition updates
-            new_node = self.world.node_transform(entity.pos)
-            if new_node and not equal_arrays(node, new_node):
-                self.transform_data[entity][4] = new_node
-                new_cell = self.world.cell_transform(entity.pos)
-                if new_cell and not equal_arrays(cell, new_cell):
-                    self.transform_data[entity][3] = new_cell
-                
-                # TODO: refactor partition insertion/removal logic to accept
-                # position as a param for elimination of the try/except block
-                try:
-                    self.world.partition.cells[cell][node].remove(entity)
-                except: pass
-                self.world.partition.insert(entity)
+            cell, node = spatial
+            new_cell, new_node = self.world.node_transform(entity.pos)
+            if not equal_arrays(cell, new_cell) or not equal_arrays(node, new_node):
+                self.world.partition._remove(entity, cell, node)
+                self.world.partition._insert(entity, new_cell, new_node)
+                self.transform_data[entity][3] = (new_cell, new_node)

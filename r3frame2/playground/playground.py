@@ -13,16 +13,15 @@ class Playground(r3.app.R3scene):
         self.enemy = self.database.query_entity("enemy")
         self.player = self.database.query_entity("player")
 
-        # insert our entities into our world (0.0.7)
-        self.world.insert(self.player)
-        self.world.insert(self.enemy)
-        
         # configure our entity physics (0.0.5)
         self.physics.toggle_transform(self.enemy)
         self.physics.toggle_transform(self.player)
 
         self.physics.toggle_collision(self.player, [0, 0], [16, 16])
         self.physics.toggle_collision(self.enemy, [0, 0], [8, 8])
+
+        self.world.insert(self.player)
+        self.world.insert(self.enemy)
 
     def exit(self): pass
 
@@ -67,7 +66,7 @@ class Playground(r3.app.R3scene):
         if self.app.events.key_held(self.app.keyboard.Down):
             self.camera.set_velocity(vy=100)
 
-    def update(self, dt: float): pass
+    def update(self, dt: float): self.app.window.set_title(f"FPS: {self.app.clock.fps}")
 
     def render(self):
         # queue a render call for our player (0.0.7)

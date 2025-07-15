@@ -8,7 +8,7 @@ version = {
 
 setuptools.setup(
     name='r3frame2',
-    version=f"{version["major"]}.{version["minor"]}.{version["patch"]}-1",
+    version=f"{version["major"]}.{version["minor"]}.{version["patch"]}-3",
     description='A neat little thing... with nightly updates',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
