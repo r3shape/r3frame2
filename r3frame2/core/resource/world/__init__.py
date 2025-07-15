@@ -1,4 +1,5 @@
 from .partition import R3gridPartition
+from .partition import R3zonePartition
 from .partition import R3treePartition
 
 from .base import R3world

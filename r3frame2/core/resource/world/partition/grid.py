@@ -1,250 +1,88 @@
-from ....atom import R3atom, R3private
-from ....globals import pg
-from ....utils import div2_v2i, div_v2i, mul_v2, sub_v2, add_v2
+from ....atom import R3atom
+from ....utils import div2_v2i, div_v2i, sub_v2, add_v2
 import r3frame2 as r3
 
 class R3gridPartition(R3atom):
     def __init__(
-            self, world,
-            pos: list[int],
-            node_size: list[int],
+            self,
             cell_size: list[int],
-            grid_size: list[int],
-            depth: int = 0,
-        ) -> None:
-        super().__init__()
-        self.depth: int = depth
-        self.world: r3.resource.R3world = world
+            grid_origin: list[int] = [0, 0]
+    ) -> None:
+        self.grid_origin: list[int] = [*map(int, grid_origin)]
 
-        self.node_size: list[int] = [*map(int, node_size)]
-        self.node_width: int = self.node_size[0]
-        self.node_height: int = self.node_size[1]
-        self.node_area: int = self.node_width * self.node_height
-
+        self.cell_width: int = int(cell_size[0])
+        self.cell_height: int = int(cell_size[1])
         self.cell_size: list[int] = [*map(int, cell_size)]
-        self.cell_width: int = self.cell_size[0]
-        self.cell_height: int = self.cell_size[1]
-        self.cell_area: int = self.cell_width * self.cell_height
-        
-        # cells[cx, cy] = dict[tuple[int], list[R3entity]]
-        # cells[cx, cy][nx, ny] = [entities...]
-        self.loaded_cells: list[tuple[int]] = []
-        self.cells: dict[tuple[int, int], dict[tuple[int, int], list[r3.resource.R3entity]]] = {}
-        
-        self.size: list[int] = [*map(int, grid_size)]
-        self.width: int = self.size[0]
-        self.height: int = self.size[1]
-        self.area: int = self.width * self.height
-        
-        self.cell_size_raw: list[int] = mul_v2(self.cell_size, self.node_size)
-        self.size_raw: list[int] = mul_v2(self.cell_size_raw, self.size)
-        
-        self.pos: list[int] =  [*map(int, pos)]
-        self.x: int = self.pos[0]
-        self.y: int = self.pos[1]
-        self.center: list[int] = add_v2(self.pos, div_v2i(self.size, 2))
+        self.cell_area: int = self.cell_size[0] * self.cell_size[1]
 
-        self._freeze()
+        self.loaded_cells: set[tuple[int]] = set()
+        self.cells: dict[tuple[int], set[r3.resource.R3entity]] = {}
 
-    def cell_transform(self, pos: list[int|float]) -> tuple[int, int]:
-        cell_pos = div2_v2i(sub_v2(pos, self.pos), mul_v2(self.cell_size, self.node_size))
-        return tuple(cell_pos)
+    def get_cell(self, pos: list[int | float]) -> tuple[int]:
+        return tuple(div_v2i(sub_v2(pos, self.grid_origin), self.cell_width))
     
-    def node_transform(self, pos: list[int | float]) -> tuple[tuple[int, int], tuple[int, int]]:
-        global_nx, global_ny = div2_v2i(sub_v2(pos, self.pos), self.node_size)
+    def get_cell_region(self, pos: list[int | float], size: list[int | float], xdir: int = 0, ydir: int = 0) -> list[tuple[int]]:
+        top_left = pos
+        bottom_right = sub_v2(add_v2(pos, size), [1, 1])
 
-        ncx = global_nx // self.cell_width
-        ncy = global_ny // self.cell_height
-        lnx = global_nx % self.cell_width
-        lny = global_ny % self.cell_height
+        region = []
+        grid_pos0 = div2_v2i(top_left, self.cell_size)
+        grid_pos1 = div2_v2i(bottom_right, self.cell_size)
+        for y in range(grid_pos0[1] - ydir, grid_pos1[1] + ydir + 1):
+            for x in range(grid_pos0[0] - xdir, grid_pos1[0] + xdir + 1):
+                region.append((x, y))
+        return region
 
-        # fixes python's negative modulo :|
-        if lnx < 0:
-            lnx += self.cell_width
-            ncx -= 1
-        if lny < 0:
-            lny += self.cell_height
-            ncy -= 1
+    def load_cell(self, pos: list[int]) -> None:
+        if pos in self.loaded_cells: return
+        self.cells[pos] = set()
+        self.loaded_cells.add(pos)
 
-        return (ncx, ncy), (lnx, lny)
-
+    def unload_cell(self, pos: list[int]) -> None:
+        if pos not in self.loaded_cells: return
+        del self.cells[pos]
+        self.loaded_cells.remove(pos)
 
     def insert(self, entity: "r3.resource.R3entity") -> None:
-        cell_pos, node_pos = self.node_transform(entity.pos)
+        region = self.get_cell_region(entity.pos, entity.size)
+        for cell_pos in region:
+            if cell_pos not in self.loaded_cells:
+                self.load_cell(cell_pos)
 
-        if cell_pos not in self.cells:
-            self.cells[cell_pos] = {}
-            self.loaded_cells.append(cell_pos)
-
-        cell = self.cells[cell_pos]
-
-        if node_pos not in cell: cell[node_pos] = []
-
-        node = cell[node_pos]
-        if entity not in node:
-            node.append(entity)
+            cell = self.cells[cell_pos]
+            if entity in cell: continue
+            
+            cell.add(entity)
+            entity.spatial.add(cell_pos)
 
     def remove(self, entity: "r3.resource.R3entity") -> None:
-        if entity.pos[0] >= self.size_raw[0] or entity.pos[1] >= self.size_raw[1]: return
+        for cell_pos in entity.spatial:
+            cell = self.cells.get(cell_pos, None)
+            if cell is None: continue
 
-        cell_pos = self.cell_transform(entity.pos)
-        node_pos = self.node_transform(entity.pos)
+            if entity in cell:
+                cell.remove(entity)
 
-        cell = self.cells.get(cell_pos, None)
-        if cell is None: return
+            if len(cell) == 0:
+                self.unload_cell(cell_pos)
+        entity.spatial.clear()
 
-        node = cell.get(node_pos, None)
-        if node is None: return
+    def query_cell(self, pos: list[int | float]) -> set["r3.resource.R3entity"] | set[None]:
+        return self.cells.get(self.get_cell(pos), set())
 
-        if entity in node:
-            node.remove(entity)
-            if not node:  # node empty
-                del cell[node_pos]
-            if not cell:  # cell empty
-                del self.cells[cell_pos]
-                if cell_pos in self.loaded_cells:
-                    self.loaded_cells.remove(cell_pos)
+    def query_cell_region(self, pos: list[int | float], size: list[int | float], xdir: int = 2, ydir: int = 2) -> tuple[set["r3.resource.R3entity"]]:
+        region = self.get_cell_region(pos, size, xdir, ydir)
+        cells = set()
+        for cell_pos in region:
+            cell = self.cells.get(cell_pos, None)
+            if cell: cells.update(cell)
 
+        return cells
 
-    @R3private
-    def _insert(self, entity: "r3.resource.R3entity", cell_pos: list[int], node_pos: list[int]) -> None:
-        if cell_pos not in self.cells:
-            self.cells[cell_pos] = {}
-            self.loaded_cells.append(cell_pos)
+    def update(self, entity: "r3.resource.R3entity") -> None:
+        new_region = set(self.get_cell_region(entity.pos, entity.size))
+        old_region = entity.spatial
 
-        cell = self.cells[cell_pos]
-
-        if node_pos not in cell: cell[node_pos] = []
-
-        node = cell[node_pos]
-        if entity not in node:
-            node.append(entity)
-
-    @R3private
-    def _remove(self, entity: "r3.resource.R3entity", cell_pos: list[int], node_pos: list[int]) -> None:
-        if cell_pos[0] >= self.cell_size[0] or cell_pos[1] >= self.cell_size[1]\
-        or node_pos[0] >= self.node_size[0] or node_pos[1] >= self.node_size[1]: return
-
-        cell = self.cells.get(cell_pos, None)
-        if cell is None: return
-
-        node = cell.get(node_pos, None)
-        if node is None: return
-
-        if entity in node:
-            node.remove(entity)
-            if not node:  # node empty
-                del cell[node_pos]
-            if not cell:  # cell empty
-                del self.cells[cell_pos]
-                if cell_pos in self.loaded_cells:
-                    self.loaded_cells.remove(cell_pos)
-
-
-    def query_node(self, pos: list[int | float]):
-        if pos[0] >= self.size_raw[0] or pos[1] >= self.size_raw[1]:
-            return
-
-        cell_pos, node_pos = self.node_transform(pos)
-
-        cell = self.cells.get(cell_pos)
-        if not cell:
-            return
-
-        node = cell.get(node_pos)
-        if not node:
-            return
-
-        yield from node
-            
-    def query_neighbor_nodes(self, pos: list[int | float]):
-        if pos[0] >= self.size_raw[0] or pos[1] >= self.size_raw[1]:
-            return
-
-        global_nx, global_ny = div2_v2i(sub_v2(pos, self.pos), self.node_size)
-
-        for dy in range(-1, 2):
-            for dx in range(-1, 2):
-                npx = global_nx + dx
-                npy = global_ny + dy
-
-                cell_pos, node_pos = self.node_transform(
-                    add_v2(self.pos, mul_v2([npx, npy], self.node_size))
-                )
-
-                cell = self.cells.get(cell_pos)
-                if not cell:
-                    continue
-
-                node = cell.get(node_pos)
-                if not node:
-                    continue
-
-                yield from node
-
-    def query_node_region(self, pos: list[int | float], size: list[int | float]):
-        if pos[0] >= self.size_raw[0] or pos[1] >= self.size_raw[1]:
-            return
-
-        pos_end = add_v2(pos, size)
-
-        # Top-left and bottom-right in global node space
-        n0x, n0y = div2_v2i(sub_v2(pos, self.pos), self.node_size)
-        n1x, n1y = div2_v2i(sub_v2(pos_end, self.pos), self.node_size)
-
-        for ny in range(n0y, n1y + 1):
-            for nx in range(n0x, n1x + 1):
-                # Convert global node coord -> world space -> (cell, node)
-                world_pos = add_v2(self.pos, mul_v2([nx, ny], self.node_size))
-                cell_pos, node_pos = self.node_transform(world_pos)
-
-                cell = self.cells.get(cell_pos)
-                if not cell:
-                    continue
-
-                node = cell.get(node_pos)
-                if not node:
-                    continue
-
-                yield from node
-
-
-    def query_cell(self, pos: list[int|float]):
-        if pos[0] >= self.size_raw[0] or pos[1] >= self.size_raw[1]: return tuple()
-
-        cell = self.cells.get(self.cell_transform(pos), None)
-        if cell is None: return tuple()
-        
-        for node in cell:
-            for entity in cell[node]:
-                yield entity
-
-    def query_neighbor_cells(self, pos: list[int|float]):
-        if pos[0] >= self.size_raw[0] or pos[1] >= self.size_raw[1]: return
-        
-        cx, cy = self.cell_transform(pos)
-        for dy in range(-1, 2, 1):
-            for dx in range(-1, 2, 1):
-                qpos = (dx + cx, dy + cy)
-                cell = self.cells.get(qpos, None)
-                if cell is None: continue
-
-                for node in cell:
-                    for entity in cell[node]:
-                        yield entity
-    
-    def query_cell_region(self, pos: list[int | float], size: list[int | float]):
-        if pos[0] >= self.size_raw[0] or pos[1] >= self.size_raw[1]: return
-
-        cx0, cy0 = self.cell_transform(pos)
-        cx1, cy1 = self.cell_transform(add_v2(pos, size))
-        for cy in range(cy0, cy1 + 1):
-            for cx in range(cx0, cx1 + 1):
-                cell_pos = (cx, cy)
-                cell = self.cells.get(cell_pos, None)
-                if cell is None: continue
-
-                for node in cell:
-                    for entity in cell[node]:
-                        yield entity
-
+        if new_region == old_region: return
+        self.remove(entity)
+        self.insert(entity)

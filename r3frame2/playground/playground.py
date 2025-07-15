@@ -6,7 +6,7 @@ class Playground(r3.app.R3scene):
 
     def init(self):
          # load an R3entity (0.0.1)
-        self.database.load_entity("enemy", [200, 200], [8, 8], rgba=[0, 0, 255])
+        self.database.load_entity("enemy", [200, 200], [32, 32], rgba=[0, 0, 255])
         self.database.load_entity("player", [100, 100], [16, 16], rgba=[255, 0, 0])
 
         # query said entity and toggle physics on it (0.0.5)
@@ -14,14 +14,17 @@ class Playground(r3.app.R3scene):
         self.player = self.database.query_entity("player")
 
         # configure our entity physics (0.0.5)
+        # toggle transformations for spatial updates
         self.physics.toggle_transform(self.enemy)
         self.physics.toggle_transform(self.player)
 
-        self.physics.toggle_collision(self.player, [0, 0], [16, 16])
-        self.physics.toggle_collision(self.enemy, [0, 0], [8, 8])
+        # toggle AABB collisions (0.0.5)
+        self.physics.toggle_collision(self.player, [0, 0], self.player.size)
+        self.physics.toggle_collision(self.enemy, [0, 0], self.enemy.size)
 
-        self.world.insert(self.player)
-        self.world.insert(self.enemy)
+        # insert our entities into our world's partition (0.0.6)
+        self.world.partition.insert(self.player)
+        self.world.partition.insert(self.enemy)
 
     def exit(self): pass
 
@@ -66,7 +69,8 @@ class Playground(r3.app.R3scene):
         if self.app.events.key_held(self.app.keyboard.Down):
             self.camera.set_velocity(vy=100)
 
-    def update(self, dt: float): self.app.window.set_title(f"FPS: {self.app.clock.fps}")
+    def update(self, dt: float):
+        self.app.window.set_title(f"FPS: {self.app.clock.fps}")
 
     def render(self):
         # queue a render call for our player (0.0.7)
@@ -74,6 +78,32 @@ class Playground(r3.app.R3scene):
 
         # queue a render call for our enemy (0.0.7)
         self.renderer.queue(r3.resource.R3renderCall(0x0000, self.enemy.pos, self.enemy.surface))
+
+        # lets visualize our R3gridPartition (0.0.8)
+        for cell_pos in self.world.partition.loaded_cells:
+            world_pos = r3.utils.sub_v2(r3.utils.mul_v2(cell_pos, self.world.partition.cell_size), self.world.partition.grid_origin)
+            if not self.renderer.visible(world_pos, self.world.partition.cell_size): continue
+            r3.utils.draw_rect(self.renderer.target, self.world.partition.cell_size, self.camera.project(world_pos), [0, 255, 0], 2)
+
+        for cell_pos in self.world.partition.get_cell_region(self.player.pos, self.player.size, 2, 2):
+            world_pos = r3.utils.sub_v2(r3.utils.mul_v2(cell_pos, self.world.partition.cell_size), self.world.partition.grid_origin)
+            if not self.renderer.visible(world_pos, self.world.partition.cell_size): continue
+            r3.utils.draw_rect(self.renderer.target, self.world.partition.cell_size, self.camera.project(world_pos), [155, 155, 155], 1)
+
+        for cell_pos in self.world.partition.get_cell_region(self.enemy.pos, self.enemy.size, 2, 2):
+            world_pos = r3.utils.sub_v2(r3.utils.mul_v2(cell_pos, self.world.partition.cell_size), self.world.partition.grid_origin)
+            if not self.renderer.visible(world_pos, self.world.partition.cell_size): continue
+            r3.utils.draw_rect(self.renderer.target, self.world.partition.cell_size, self.camera.project(world_pos), [155, 155, 155], 1)
+
+        for cell_pos in self.player.spatial:
+            world_pos = r3.utils.sub_v2(r3.utils.mul_v2(cell_pos, self.world.partition.cell_size), self.world.partition.grid_origin)
+            if not self.renderer.visible(world_pos, self.world.partition.cell_size): continue
+            r3.utils.draw_rect(self.renderer.target, self.world.partition.cell_size, self.camera.project(world_pos), [155, 0, 155], 1)
+        
+        for cell_pos in self.enemy.spatial:
+            world_pos = r3.utils.sub_v2(r3.utils.mul_v2(cell_pos, self.world.partition.cell_size), self.world.partition.grid_origin)
+            if not self.renderer.visible(world_pos, self.world.partition.cell_size): continue
+            r3.utils.draw_rect(self.renderer.target, self.world.partition.cell_size, self.camera.project(world_pos), [155, 0, 155], 1)
 
 class PlaygroundApp(r3.app.R3app):
     def __init__(self):

@@ -24,6 +24,9 @@ class R3entity(R3atom):
 
         self.anim: r3.resource.R3anim = None
         self.surface: r3.resource.R3surf = None
+
+        # partition data
+        self.spatial: set[tuple[tuple[int]]] = set()
         self._freeze()
 
     @property

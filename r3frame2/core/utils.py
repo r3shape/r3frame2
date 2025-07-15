@@ -86,9 +86,9 @@ This function simulates a linear friction effect by reducing `x` by a constant a
 
 # ------------------------------------------------------------ #
 div_v2 = lambda v, s: [v[0] / s, v[1] / s]
-div_v2i = lambda v, s: [*map(int, [v[0] / s, v[1] / s])]
+div_v2i = lambda v, s: [*map(math.floor, [v[0] / s, v[1] / s])]
 div2_v2 = lambda a, b: [a[0] / b[0], a[1] / b[1]]
-div2_v2i = lambda a, b: [*map(int, [a[0] // b[0], a[1] // b[1]])]
+div2_v2i = lambda a, b: [*map(math.floor, [a[0] // b[0], a[1] // b[1]])]
 dist_v2 = lambda a, b: mag_v2(sub_v2(a, b))
 
 scale_v2 = lambda v, s: [v[0] * s, v[1] * s]

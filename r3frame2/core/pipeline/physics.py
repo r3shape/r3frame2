@@ -43,7 +43,7 @@ class R3physics(R3atom):
             R3logger.debug(f"[R3physics] toggled entity physics off: (entity){entity.tag}")
             return R3status.physics.ENTITY_FOUND
         elif self._valid_entity(self.transform_data, entity) == R3status.physics.ENTITY_NOT_FOUND:
-            self.transform_data[entity] = [entity, [0.0, 0.0], [], self.world.node_transform(entity.pos)]
+            self.transform_data[entity] = [entity, [0.0, 0.0], []]
             R3logger.debug(f"[R3physics] toggled entity physics on: (entity){entity.tag}")
             return R3status.physics.ENTITY_FOUND
         else:
@@ -112,7 +112,7 @@ class R3physics(R3atom):
         vel = self.transform_data[entity][1]
         a1 = self.collision_data[entity][1]
         r1 = a1.rect
-        for entity2 in self.world.partition.query_neighbor_nodes(entity.pos):
+        for entity2 in self.world.partition.query_cell_region(entity.pos, entity.size):
             if entity2 == entity: continue
             if self._valid_entity(self.collision_data, entity2) != R3status.physics.ENTITY_FOUND:
                 continue
@@ -133,7 +133,7 @@ class R3physics(R3atom):
         vel = self.transform_data[entity][1]
         a1 = self.collision_data[entity][1]
         r1 = a1.rect
-        for entity2 in self.world.partition.query_neighbor_nodes(entity.pos):
+        for entity2 in self.world.partition.query_cell_region(entity.pos, entity.size):
             if entity2 == entity: continue
             if self._valid_entity(self.collision_data, entity2) != R3status.physics.ENTITY_FOUND:
                 continue
@@ -151,7 +151,7 @@ class R3physics(R3atom):
     @R3private
     def update(self, dt: float) -> None:
         entities = tuple(self.transform_data[e] for e in self.transform_data if e not in self._meta)
-        for entity, vel, cmds, spatial in entities:
+        for entity, vel, cmds in entities:
             if len(cmds) > 0:   # evaluate the "move to" command buffer
                 speed, pos, stop, center = cmds[0]
                 
@@ -159,8 +159,7 @@ class R3physics(R3atom):
                 direction = norm_v2(diff)
                 dist = mag_v2(diff)
                 
-                if int(dist) <= int(stop):
-                    cmds.pop(0)
+                if int(dist) <= int(stop): cmds.pop(0)
                 else:
                     dirx, diry = direction
                     vel[0] = dirx * speed
@@ -177,10 +176,4 @@ class R3physics(R3atom):
             entity.pos[1] += vel[1] * dt
             self._aabby(entity)
             
-            # partition updates
-            cell, node = spatial
-            new_cell, new_node = self.world.node_transform(entity.pos)
-            if not equal_arrays(cell, new_cell) or not equal_arrays(node, new_node):
-                self.world.partition._remove(entity, cell, node)
-                self.world.partition._insert(entity, new_cell, new_node)
-                self.transform_data[entity][3] = (new_cell, new_node)
+            self.world.partition.update(entity)
