@@ -2,7 +2,10 @@ import r3frame2 as r3
 
 class Playground(r3.app.R3scene):
     def __init__(self, app):
-        super().__init__(app)
+        # to begin, lets configure the world in this scene (0.0.8)
+        # for we pass it an instance of a desired partitioning system configuration
+        super().__init__(app, r3.resource.R3worldConfig(r3.resource.R3zoneConfig()))
+        # super().__init__(app, r3.resource.R3worldConfig(r3.resource.R3gridConfig()))
 
     def init(self):
          # load an R3entity (0.0.1)
@@ -69,8 +72,7 @@ class Playground(r3.app.R3scene):
         if self.app.events.key_held(self.app.keyboard.Down):
             self.camera.set_velocity(vy=100)
 
-    def update(self, dt: float):
-        self.app.window.set_title(f"FPS: {self.app.clock.fps}")
+    def update(self, dt: float): self.app.window.set_title(f"FPS: {self.app.clock.fps}")
 
     def render(self):
         # queue a render call for our player (0.0.7)
@@ -79,31 +81,70 @@ class Playground(r3.app.R3scene):
         # queue a render call for our enemy (0.0.7)
         self.renderer.queue(r3.resource.R3renderCall(0x0000, self.enemy.pos, self.enemy.surface))
 
+        # self.render_grid_partition()
+        self.render_zone_partition()
+
+    def render_zone_partition(self) -> None:
+        partition = self.world.partition
+        # visualize loaded zones (green)
+        for zone_pos in partition.loaded_zones:
+            zone_origin = r3.utils.sub_v2(r3.utils.mul_v2(zone_pos, partition.zone_size), partition.zone_origin)
+            if not self.renderer.visible(zone_origin, partition.zone_size): continue
+            r3.utils.draw_rect(self.renderer.target, partition.zone_size, self.camera.project(zone_origin), [0, 255, 0], 3)
+
+        # visualize cell region around player (gray)
+        for cell_pos in partition.get_cell_region(self.player.pos, self.player.size, 2, 2):
+            zone_origin = r3.utils.sub_v2(r3.utils.mul_v2(cell_pos, partition.cell_size), partition.zone_origin)
+            # print(zone_origin)
+            if not self.renderer.visible(zone_origin, partition.cell_size): continue
+            r3.utils.draw_rect(self.renderer.target, partition.cell_size, self.camera.project(zone_origin), [155, 155, 155], 1)
+
+        # visualize cell region around enemy (gray)
+        for cell_pos in partition.get_cell_region(self.enemy.pos, self.enemy.size, 2, 2):
+            zone_origin = r3.utils.sub_v2(r3.utils.mul_v2(cell_pos, partition.cell_size), partition.zone_origin)
+            # print(zone_origin)
+            if not self.renderer.visible(zone_origin, partition.cell_size): continue
+            r3.utils.draw_rect(self.renderer.target, partition.cell_size, self.camera.project(zone_origin), [155, 155, 155], 1)
+
+        # visualize player spatial cells (purple)
+        for cell_pos in self.player.spatial:
+            cell_origin = r3.utils.sub_v2(r3.utils.mul_v2(cell_pos, partition.cell_size), partition.zone_origin)
+            if not self.renderer.visible(cell_origin, partition.cell_size): continue
+            r3.utils.draw_rect(self.renderer.target, partition.cell_size, self.camera.project(cell_origin), [155, 0, 155], 1)
+
+        # visualize enemy spatial cells (purple)
+        for cell_pos in self.enemy.spatial:
+            cell_origin = r3.utils.sub_v2(r3.utils.mul_v2(cell_pos, partition.cell_size), partition.zone_origin)
+            if not self.renderer.visible(cell_origin, partition.cell_size): continue
+            r3.utils.draw_rect(self.renderer.target, partition.cell_size, self.camera.project(cell_origin), [155, 0, 155], 1)
+
+    def render_grid_partition(self) -> None:
+        partition = self.world.partition
         # lets visualize our R3gridPartition (0.0.8)
-        for cell_pos in self.world.partition.loaded_cells:
-            world_pos = r3.utils.sub_v2(r3.utils.mul_v2(cell_pos, self.world.partition.cell_size), self.world.partition.grid_origin)
-            if not self.renderer.visible(world_pos, self.world.partition.cell_size): continue
-            r3.utils.draw_rect(self.renderer.target, self.world.partition.cell_size, self.camera.project(world_pos), [0, 255, 0], 2)
+        for cell_pos in partition.loaded_cells:
+            world_pos = r3.utils.sub_v2(r3.utils.mul_v2(cell_pos, partition.cell_size), partition.grid_origin)
+            if not self.renderer.visible(world_pos, partition.cell_size): continue
+            r3.utils.draw_rect(self.renderer.target, partition.cell_size, self.camera.project(world_pos), [0, 255, 0], 2)
 
-        for cell_pos in self.world.partition.get_cell_region(self.player.pos, self.player.size, 2, 2):
-            world_pos = r3.utils.sub_v2(r3.utils.mul_v2(cell_pos, self.world.partition.cell_size), self.world.partition.grid_origin)
-            if not self.renderer.visible(world_pos, self.world.partition.cell_size): continue
-            r3.utils.draw_rect(self.renderer.target, self.world.partition.cell_size, self.camera.project(world_pos), [155, 155, 155], 1)
+        for cell_pos in partition.get_cell_region(self.player.pos, self.player.size, 2, 2):
+            world_pos = r3.utils.sub_v2(r3.utils.mul_v2(cell_pos, partition.cell_size), partition.grid_origin)
+            if not self.renderer.visible(world_pos, partition.cell_size): continue
+            r3.utils.draw_rect(self.renderer.target, partition.cell_size, self.camera.project(world_pos), [155, 155, 155], 1)
 
-        for cell_pos in self.world.partition.get_cell_region(self.enemy.pos, self.enemy.size, 2, 2):
-            world_pos = r3.utils.sub_v2(r3.utils.mul_v2(cell_pos, self.world.partition.cell_size), self.world.partition.grid_origin)
-            if not self.renderer.visible(world_pos, self.world.partition.cell_size): continue
-            r3.utils.draw_rect(self.renderer.target, self.world.partition.cell_size, self.camera.project(world_pos), [155, 155, 155], 1)
+        for cell_pos in partition.get_cell_region(self.enemy.pos, self.enemy.size, 2, 2):
+            world_pos = r3.utils.sub_v2(r3.utils.mul_v2(cell_pos, partition.cell_size), partition.grid_origin)
+            if not self.renderer.visible(world_pos, partition.cell_size): continue
+            r3.utils.draw_rect(self.renderer.target, partition.cell_size, self.camera.project(world_pos), [155, 155, 155], 1)
 
         for cell_pos in self.player.spatial:
-            world_pos = r3.utils.sub_v2(r3.utils.mul_v2(cell_pos, self.world.partition.cell_size), self.world.partition.grid_origin)
-            if not self.renderer.visible(world_pos, self.world.partition.cell_size): continue
-            r3.utils.draw_rect(self.renderer.target, self.world.partition.cell_size, self.camera.project(world_pos), [155, 0, 155], 1)
+            world_pos = r3.utils.sub_v2(r3.utils.mul_v2(cell_pos, partition.cell_size), partition.grid_origin)
+            if not self.renderer.visible(world_pos, partition.cell_size): continue
+            r3.utils.draw_rect(self.renderer.target, partition.cell_size, self.camera.project(world_pos), [155, 0, 155], 1)
         
         for cell_pos in self.enemy.spatial:
-            world_pos = r3.utils.sub_v2(r3.utils.mul_v2(cell_pos, self.world.partition.cell_size), self.world.partition.grid_origin)
-            if not self.renderer.visible(world_pos, self.world.partition.cell_size): continue
-            r3.utils.draw_rect(self.renderer.target, self.world.partition.cell_size, self.camera.project(world_pos), [155, 0, 155], 1)
+            world_pos = r3.utils.sub_v2(r3.utils.mul_v2(cell_pos, partition.cell_size), partition.grid_origin)
+            if not self.renderer.visible(world_pos, partition.cell_size): continue
+            r3.utils.draw_rect(self.renderer.target, partition.cell_size, self.camera.project(world_pos), [155, 0, 155], 1)
 
 class PlaygroundApp(r3.app.R3app):
     def __init__(self):

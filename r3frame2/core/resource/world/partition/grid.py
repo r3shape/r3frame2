@@ -19,7 +19,7 @@ class R3gridPartition(R3atom):
         self.cells: dict[tuple[int], set[r3.resource.R3entity]] = {}
 
     def get_cell(self, pos: list[int | float]) -> tuple[int]:
-        return tuple(div_v2i(sub_v2(pos, self.grid_origin), self.cell_width))
+        return tuple(div2_v2i(sub_v2(pos, self.zone_origin), self.cell_size))
     
     def get_cell_region(self, pos: list[int | float], size: list[int | float], xdir: int = 0, ydir: int = 0) -> list[tuple[int]]:
         top_left = pos
@@ -31,7 +31,7 @@ class R3gridPartition(R3atom):
         for y in range(grid_pos0[1] - ydir, grid_pos1[1] + ydir + 1):
             for x in range(grid_pos0[0] - xdir, grid_pos1[0] + xdir + 1):
                 region.append((x, y))
-        return region
+        return tuple(region)
 
     def load_cell(self, pos: list[int]) -> None:
         if pos in self.loaded_cells: return
@@ -45,6 +45,7 @@ class R3gridPartition(R3atom):
 
     def insert(self, entity: "r3.resource.R3entity") -> None:
         region = self.get_cell_region(entity.pos, entity.size)
+        entity.spatial.clear()
         for cell_pos in region:
             if cell_pos not in self.loaded_cells:
                 self.load_cell(cell_pos)
@@ -63,12 +64,11 @@ class R3gridPartition(R3atom):
             if entity in cell:
                 cell.remove(entity)
 
-            if len(cell) == 0:
-                self.unload_cell(cell_pos)
+            if len(cell) == 0: self.unload_cell(cell_pos)
         entity.spatial.clear()
 
     def query_cell(self, pos: list[int | float]) -> set["r3.resource.R3entity"] | set[None]:
-        return self.cells.get(self.get_cell(pos), set())
+        return self.cells.get(self.get_cell(pos), None)
 
     def query_cell_region(self, pos: list[int | float], size: list[int | float], xdir: int = 2, ydir: int = 2) -> tuple[set["r3.resource.R3entity"]]:
         region = self.get_cell_region(pos, size, xdir, ydir)
@@ -76,7 +76,6 @@ class R3gridPartition(R3atom):
         for cell_pos in region:
             cell = self.cells.get(cell_pos, None)
             if cell: cells.update(cell)
-
         return cells
 
     def update(self, entity: "r3.resource.R3entity") -> None:

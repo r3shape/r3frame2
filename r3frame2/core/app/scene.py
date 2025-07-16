@@ -7,14 +7,13 @@ class R3scene(R3atom):
     def __init__(
             self,
             app: "r3.app.R3app",
-            world_cell_size: list[int] = [16, 16],
-            world_origin: list[int] = [0, 0]
+            world_config: "r3.resource.R3worldConfig"
     ) -> None:
         super().__init__()
         self.app: r3.app.R3app = app
         self.database: r3.resource.R3database = app.database
 
-        self.world: r3.resource.R3world = r3.resource.R3world(world_cell_size, world_origin)
+        self.world: r3.resource.R3world = r3.resource.R3world(app, world_config)
         self.physics: r3.pipeline.R3physics = r3.pipeline.R3physics(app, self.world)
         
         self.ui: r3.pipeline.R3ui = r3.pipeline.R3ui(app)
