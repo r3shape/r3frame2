@@ -33,11 +33,11 @@ class R3surf(R3atom):
         return self.rgba[3]
 
     @property
-    def w(self) -> float:
+    def width(self) -> float:
         return self.size[0]
     @property
-    def h(self) -> float:
+    def height(self) -> float:
         return self.size[1]
     @property
-    def a(self) -> float:
+    def area(self) -> float:
         return self.size[0] * self.size[1]

@@ -3,6 +3,7 @@ main.py
 MANIFEST.in
 
 *dist/
+*images/
 *venv/
 *.test/
 *.egg-info/

@@ -155,7 +155,7 @@ class R3zonePartition(R3atom):
 
 
     def query_cell(self, pos: list[int | float]) -> set["r3.resource.R3entity"]:
-        zone = self.zones.get(self.get_zone(pos), None)
+        zone = self.zones.get(self.get_zone(mul_v2(pos, self.cell_size)), None)
         if zone is None: return None
         return zone.get(self.get_cell(pos), set())
     
@@ -164,7 +164,7 @@ class R3zonePartition(R3atom):
         query = set()
 
         for cell_pos in region:
-            zone_pos = self.get_zone(cell_pos)
+            zone_pos = self.get_zone(mul_v2(cell_pos, self.cell_size))
             zone = self.zones.get(zone_pos, None)
             if zone is None: continue
 

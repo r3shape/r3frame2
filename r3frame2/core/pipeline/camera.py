@@ -69,7 +69,7 @@ class R3camera(R3atom):
         # scale zoom delta by 10% vp size
         delta *= min(self.viewport_size) * 0.1
 
-        self.viewport_size[1] = min(self.window.size[1], max(self.window.size[1] / 4, self.viewport_size[1] + delta))
+        self.viewport_size[1] = min(self.window.size[1] * 2, max(self.window.size[1] / 12, self.viewport_size[1] + delta))
         self.viewport_size[0] = self.viewport_size[1] * self.window.aspect
 
         self.viewport_scale = [

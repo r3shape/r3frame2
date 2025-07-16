@@ -11,3 +11,7 @@ class R3status:
         ENTITY_NOT_FOUND: int = 0x05
         ENTITY_FOUND: int = 0x06
         ENTITY_INVALID: int = 0x07
+
+    class anim:
+        DONE: int = (1 << 0)
+        LOOP: int = (1 << 1)

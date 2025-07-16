@@ -1,7 +1,7 @@
 from ..status import R3status
 from ..log import R3logger
 from ..atom import R3atom
-from ..globals import pg
+from ..globals import pg, os
 # from ..utils import 
 import r3frame2 as r3
 
@@ -143,6 +143,66 @@ class R3database(R3atom):
             R3logger.error(f"[R3database] failed to query entity: (key){key}")
             return R3status.database.LOAD_FAIL        
         return self.entity.get(key, R3status.database.LOAD_FAIL)
+
+
+    def load_anim(
+            self,
+            key: str,
+            path: str,
+            size: list[int] = [32, 32],
+            frame_duration: float = 4.0,
+            frame_offset: list[int] = [0, 0],
+        ) -> int:
+        if self._valid_key("anim", key) != R3status.database.KEY_NOT_FOUND\
+            or not os.path.exists(path):
+            R3logger.error(f"[R3database] failed to load anim: (key){key}")
+            return R3status.database.LOAD_FAIL
+
+        frames = self._load_surf_array(path, size)
+        self.anim[key] = r3.resource.R3anim(path, size, frame_duration, frame_offset)
+        for frame in frames:
+            surf = r3.resource.R3surf(size)
+            surf.surface = frame
+            surf.mask = pg.mask.from_surface(surf.surface)
+            
+            self.anim[key].frames.append(surf)
+        self.anim[key].frame_count = len(frames)
+        self.anim[key].frame_scale = self.anim[key].frame_duration * self.anim[key].frame_count
+
+        self.anim["_count"] += 1
+
+        R3logger.debug(f"[R3database] loaded anim: (key){key} (path){path} (size){size} (frames){self.anim[key].frame_count}")
+        return R3status.database.LOAD_SUCCESS
+    
+    def unload_anim(self, key: str) -> int:
+        if self._valid_key("anim", key) != R3status.database.KEY_FOUND:
+            R3logger.error(f"[R3database] failed to unload anim: (key){key}")
+            return R3status.database.LOAD_FAIL
+
+        self.anim.pop(key)
+        self.anim["_count"] -= 1
+
+        R3logger.debug(f"[R3database] unloaded anim: (key){key}")
+        return R3status.database.LOAD_SUCCESS
+
+    def query_anim(self, key: str) -> "r3.resource.R3anim":
+        if self._valid_key("anim", key) != R3status.database.KEY_FOUND:
+            R3logger.error(f"[R3database] failed to query anim: (key){key}")
+            return R3status.database.LOAD_FAIL
+        return self.anim.get(key, R3status.database.LOAD_FAIL)
+
+    def update_anim(self, key: str) -> None:
+        if self._valid_key("anim", key) != R3status.database.KEY_FOUND:
+            R3logger.error(f"[R3database] failed to query anim: (key){key}")
+            return R3status.database.LOAD_FAIL
+        
+        anim = self.query_anim(key)
+        if anim.get_flag(r3.R3status.anim.LOOP):
+            anim.frame_index = (anim.frame_index + 1) % (anim.frame_scale)
+        else:
+            anim.frame_index = min(anim.frame_index + 1, anim.frame_scale - 1)
+            if anim.frame_index >= anim.frame_scale - 1:
+                anim.set_flag(r3.R3status.anim.DONE)
 
 
     def load_surf(

@@ -110,7 +110,7 @@ unequal_arrays = lambda a, b: all([*map(lambda a, b: a != b, a, b)])
 norm_v2 = lambda v: [v[0] / mag_v2(v), v[1] / mag_v2(v)] if mag_v2(v) != 0 else [0, 0]
 # ------------------------------------------------------------ #
 
-@R3private
+# @R3private
 def r3_path(path: str, remcore: bool = 0) -> str:
     fp = __file__.split(os.sep)
     fp.remove(fp[-1])
